@@ -1,0 +1,64 @@
+{
+  "id": "mcp-adapter",
+  "name": "MCP Adapter",
+  "description": "Exposes MCP server tools as native OpenClaw agent tools",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "servers": {
+        "type": "array",
+        "description": "List of MCP servers to connect to",
+        "items": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Unique name for this server (used as tool prefix)"
+            },
+            "transport": {
+              "type": "string",
+              "enum": ["stdio", "http"],
+              "default": "stdio",
+              "description": "Connection type"
+            },
+            "command": {
+              "type": "string",
+              "description": "For stdio: command to spawn"
+            },
+            "args": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "For stdio: command arguments"
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Environment variables (supports ${VAR} interpolation)"
+            },
+            "url": {
+              "type": "string",
+              "description": "For http: server URL"
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "For http: request headers (supports ${VAR} interpolation)"
+            }
+          }
+        }
+      },
+      "toolPrefix": {
+        "type": "boolean",
+        "default": true,
+        "description": "Prefix tool names with server name"
+      },
+      "retryOnStartup": {
+        "type": "number",
+        "default": 3,
+        "description": "Retry attempts if server unreachable at init"
+      }
+    }
+  }
+}

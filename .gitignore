@@ -1,0 +1,5 @@
+node_modules/
+*.lock
+.DS_Store
+CLAUDE.md
+PRD.md
