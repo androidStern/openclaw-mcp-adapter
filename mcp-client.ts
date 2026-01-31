@@ -58,7 +58,8 @@ export class McpClientPool {
     } catch (err) {
       if (!entry.connected || this.isConnectionError(err)) {
         await this.reconnect(serverName);
-        return await entry.client.callTool({ name: toolName, arguments: args as Record<string, unknown> });
+        const newEntry = this.clients.get(serverName)!;
+        return await newEntry.client.callTool({ name: toolName, arguments: args as Record<string, unknown> });
       }
       throw err;
     }

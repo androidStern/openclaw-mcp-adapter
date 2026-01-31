@@ -53,11 +53,6 @@
         "type": "boolean",
         "default": true,
         "description": "Prefix tool names with server name"
-      },
-      "retryOnStartup": {
-        "type": "number",
-        "default": 3,
-        "description": "Retry attempts if server unreachable at init"
       }
     }
   }
