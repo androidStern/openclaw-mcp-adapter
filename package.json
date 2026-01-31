@@ -1,5 +1,5 @@
 {
-  "name": "mcp-adapter",
+  "name": "openclaw-mcp-adapter",
   "version": "0.1.0",
   "type": "module",
   "description": "OpenClaw plugin that exposes MCP server tools as native agent tools",
