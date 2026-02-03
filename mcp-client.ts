@@ -87,4 +87,22 @@ export class McpClientPool {
     const entry = this.clients.get(serverName);
     return { connected: entry?.connected ?? false };
   }
+
+  async close(serverName: string) {
+    const entry = this.clients.get(serverName);
+    if (!entry) return;
+
+    try {
+      await entry.transport.close?.();
+    } catch {
+      // Ignore close errors
+    }
+    this.clients.delete(serverName);
+  }
+
+  async closeAll() {
+    for (const name of this.clients.keys()) {
+      await this.close(name);
+    }
+  }
 }
