@@ -3,11 +3,18 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ServerConfig } from "./config.js";
 
+interface ToolSchema {
+  type?: string;
+  properties?: Record<string, { type?: string }>;
+  required?: string[];
+}
+
 interface ClientEntry {
   config: ServerConfig;
   client: Client;
   transport: StdioClientTransport | StreamableHTTPClientTransport;
   connected: boolean;
+  toolSchemas: Map<string, ToolSchema>;
 }
 
 export class McpClientPool {
@@ -31,7 +38,7 @@ export class McpClientPool {
       };
     }
 
-    this.clients.set(config.name, { config, client, transport, connected: true });
+    this.clients.set(config.name, { config, client, transport, connected: true, toolSchemas: new Map() });
     return client;
   }
 
@@ -52,12 +59,19 @@ export class McpClientPool {
     const entry = this.clients.get(serverName);
     if (!entry) throw new Error(`Unknown server: ${serverName}`);
     const result = await entry.client.listTools();
+    for (const tool of result.tools) {
+      if (tool.inputSchema) {
+        entry.toolSchemas.set(tool.name, tool.inputSchema as ToolSchema);
+      }
+    }
     return result.tools;
   }
 
   async callTool(serverName: string, toolName: string, args: unknown) {
     const entry = this.clients.get(serverName);
     if (!entry) throw new Error(`Unknown server: ${serverName}`);
+
+    this.warnOnSchemaViolations(serverName, toolName, args, entry.toolSchemas);
 
     try {
       return await entry.client.callTool({ name: toolName, arguments: args as Record<string, unknown> });
@@ -88,6 +102,36 @@ export class McpClientPool {
   private markDisconnected(serverName: string) {
     const entry = this.clients.get(serverName);
     if (entry) entry.connected = false;
+  }
+
+  private warnOnSchemaViolations(
+    serverName: string, toolName: string, args: unknown, schemas: Map<string, ToolSchema>,
+  ) {
+    const schema = schemas.get(toolName);
+    if (!schema || typeof args !== "object" || args === null) return;
+
+    const obj = args as Record<string, unknown>;
+    const prefix = `[mcp-adapter] ${serverName}/${toolName}`;
+
+    if (schema.required) {
+      for (const field of schema.required) {
+        if (!(field in obj)) {
+          console.warn(`${prefix}: missing required field "${field}"`);
+        }
+      }
+    }
+
+    if (schema.properties) {
+      for (const [field, prop] of Object.entries(schema.properties)) {
+        if (field in obj && prop.type && obj[field] !== null && obj[field] !== undefined) {
+          const actual = typeof obj[field];
+          const expected = prop.type === "integer" ? "number" : prop.type;
+          if (actual !== expected) {
+            console.warn(`${prefix}: field "${field}" expected ${prop.type}, got ${actual}`);
+          }
+        }
+      }
+    }
   }
 
   private isConnectionError(err: unknown): boolean {
